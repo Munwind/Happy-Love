@@ -1,0 +1,1952 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>For You ❤️</title>
+    <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Dancing+Script:wght@400;700&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            overflow: hidden;
+            background: #000;
+            width: 100%; height: 100%;
+            touch-action: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        canvas { display: block; }
+
+        #loading-screen {
+            position: fixed; inset: 0; z-index: 100;
+            background: #0a0010;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            transition: opacity 1.5s ease, visibility 1.5s ease;
+        }
+        #loading-screen.hidden { opacity: 0; visibility: hidden; }
+        #loading-screen .heart-icon {
+            font-size: 3rem;
+            animation: loadPulse 1s ease-in-out infinite alternate;
+        }
+        #loading-screen p {
+            color: rgba(255,180,200,0.7);
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-size: 1.1rem; margin-top: 1rem;
+            letter-spacing: 0.15em;
+        }
+        @keyframes loadPulse {
+            from { transform: scale(1); opacity: 0.6; }
+            to   { transform: scale(1.25); opacity: 1; }
+        }
+
+        /* ── Rotate-phone overlay ── */
+        #rotate-overlay {
+            position: fixed; inset: 0; z-index: 9999;
+            background: #0a0010;
+            display: none; /* hidden by default */
+            flex-direction: column;
+            justify-content: center; align-items: center;
+            text-align: center;
+            padding: 2rem;
+        }
+        #rotate-overlay .phone-icon {
+            font-size: 4rem;
+            animation: rotateHint 2s ease-in-out infinite;
+        }
+        #rotate-overlay p {
+            color: rgba(255,180,200,0.85);
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-size: 1.2rem; margin-top: 1.2rem;
+            letter-spacing: 0.1em;
+        }
+        @keyframes rotateHint {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-30deg); }
+            75% { transform: rotate(90deg); }
+        }
+        /* Show overlay ONLY on mobile portrait */
+        @media screen and (max-width: 900px) and (orientation: portrait) {
+            #rotate-overlay { display: flex !important; }
+        }
+        @media screen and (max-width: 900px) and (orientation: landscape) {
+            #rotate-overlay { display: none !important; }
+        }
+
+        /* ── Tap-to-start screen ── */
+        #tap-screen {
+            position: fixed; inset: 0; z-index: 200;
+            background: radial-gradient(ellipse at center, #1a0020 0%, #0a0010 100%);
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+        #tap-screen.hidden {
+            opacity: 0; visibility: hidden;
+            transition: opacity 1.2s ease, visibility 1.2s ease;
+        }
+        #tap-screen .big-heart {
+            font-size: 5rem;
+            animation: tapPulse 1.5s ease-in-out infinite alternate;
+            filter: drop-shadow(0 0 30px rgba(255,50,100,0.6));
+        }
+        #tap-screen .tap-text {
+            color: rgba(255,180,200,0.9);
+            font-family: 'Great Vibes', cursive;
+            font-size: clamp(1.5rem, 4vw, 2.5rem);
+            margin-top: 1.5rem;
+            letter-spacing: 0.08em;
+            text-shadow: 0 0 20px rgba(255,100,150,0.4);
+        }
+        #tap-screen .tap-hint {
+            color: rgba(255,180,200,0.4);
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 0.9rem;
+            margin-top: 0.8rem;
+            letter-spacing: 0.15em;
+            animation: tapFade 2s ease-in-out infinite alternate;
+        }
+        @keyframes tapPulse {
+            from { transform: scale(1); }
+            to   { transform: scale(1.15); }
+        }
+        @keyframes tapFade {
+            from { opacity: 0.3; }
+            to   { opacity: 0.8; }
+        }
+
+        /* ── Music toggle ── */
+        #music-toggle {
+            position: fixed; bottom: 1.2rem; right: 1.2rem;
+            z-index: 50;
+            width: 44px; height: 44px;
+            border-radius: 50%;
+            border: 1px solid rgba(255,150,180,0.3);
+            background: rgba(20,0,30,0.6);
+            backdrop-filter: blur(10px);
+            color: rgba(255,180,200,0.8);
+            font-size: 1.3rem;
+            cursor: pointer;
+            display: flex; justify-content: center; align-items: center;
+            transition: all 0.3s ease;
+            pointer-events: auto;
+        }
+        #music-toggle:hover {
+            background: rgba(255,50,100,0.2);
+            border-color: rgba(255,150,180,0.6);
+        }
+        #music-toggle.muted {
+            opacity: 0.4;
+        }
+
+        #vignette {
+            position: fixed; inset: 0; z-index: 5;
+            pointer-events: none;
+            background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.65) 100%);
+        }
+
+        #text-overlay {
+            position: fixed; inset: 0; z-index: 10;
+            display: flex; justify-content: center; align-items: center;
+            pointer-events: none;
+        }
+        .message {
+            position: absolute;
+            color: #fff;
+            font-family: 'Great Vibes', 'Dancing Script', cursive;
+            font-size: clamp(1.4rem, 4.5vw, 3.5rem);
+            text-align: center;
+            padding: 0 1.5rem;
+            opacity: 0;
+            transform: translateY(30px) scale(0.96);
+            will-change: opacity, transform;
+            line-height: 1.4;
+            max-width: 90vw;
+            text-shadow:
+                0 0 10px rgba(255,80,140,0.9),
+                0 0 30px rgba(255,80,140,0.6),
+                0 0 60px rgba(255,80,140,0.35),
+                0 0 110px rgba(255,80,140,0.15);
+        }
+        /* Smaller sub-messages for cam lines */
+        .message.cam-line {
+            font-family: 'Dancing Script', 'Great Vibes', cursive;
+            font-size: clamp(1.2rem, 3.5vw, 2.6rem);
+            font-weight: 700;
+        }
+        .message.names-line {
+            font-family: 'Great Vibes', cursive;
+            font-size: clamp(1.6rem, 5vw, 3.8rem);
+            text-shadow:
+                0 0 15px rgba(255,100,180,1),
+                0 0 40px rgba(255,60,140,0.7),
+                0 0 80px rgba(255,40,120,0.4),
+                0 0 140px rgba(255,20,100,0.2);
+        }
+
+        #signature {
+            position: fixed; bottom: 1.5rem; left: 0; right: 0;
+            text-align: center; z-index: 10; pointer-events: none;
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-size: 0.8rem; letter-spacing: 0.2em;
+            color: rgba(255,180,200,0.25);
+        }
+
+        /* ── Poem overlay ── */
+        #poem-overlay {
+            position: fixed; inset: 0; z-index: 15;
+            display: flex; justify-content: center; align-items: center;
+            pointer-events: none;
+        }
+        .poem {
+            position: absolute;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.8s ease, transform 0.8s ease;
+            text-align: center;
+            padding: 0 2rem;
+            max-width: 85vw;
+            font-family: 'Great Vibes', 'Dancing Script', cursive;
+            color: rgba(255,220,235,0.92);
+            font-size: clamp(1.1rem, 3vw, 1.8rem);
+            line-height: 2.2;
+            letter-spacing: 0.04em;
+            text-shadow:
+                0 0 15px rgba(255,100,170,0.5),
+                0 0 40px rgba(255,60,130,0.25),
+                0 0 80px rgba(200,40,100,0.12);
+        }
+        .poem.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .poem .em-line {
+            color: rgba(255,180,220,1);
+        }
+        .poem .tw-char {
+            opacity: 0;
+            display: inline;
+            transition: opacity 0.12s ease;
+        }
+        .poem .tw-char.visible {
+            opacity: 1;
+        }
+        .poem .tw-cursor {
+            display: inline-block;
+            width: 2px;
+            height: 1.1em;
+            background: rgba(255,180,220,0.8);
+            margin-left: 2px;
+            vertical-align: text-bottom;
+            animation: twBlink 0.6s ease-in-out infinite alternate;
+        }
+        @keyframes twBlink {
+            from { opacity: 0.3; }
+            to   { opacity: 1; }
+        }
+
+        /* ── Falling petals canvas ── */
+        #petal-canvas {
+            position: fixed; inset: 0; z-index: 6;
+            pointer-events: none;
+        }
+
+        /* ── Countdown overlay ── */
+        #countdown-overlay {
+            position: fixed; inset: 0; z-index: 150;
+            display: none;
+            justify-content: center; align-items: center;
+            background: radial-gradient(ellipse at center, rgba(20,0,30,0.3) 0%, rgba(5,0,10,0.7) 100%);
+            pointer-events: none;
+        }
+        #countdown-overlay.active { display: flex; }
+        #countdown-overlay .count-num {
+            font-family: 'Great Vibes', cursive;
+            font-size: clamp(6rem, 20vw, 14rem);
+            color: rgba(255,180,220,0.95);
+            text-shadow:
+                0 0 30px rgba(255,80,150,0.9),
+                0 0 60px rgba(255,50,120,0.5),
+                0 0 120px rgba(255,30,100,0.3);
+            animation: countPop 0.9s ease-out forwards;
+        }
+        @keyframes countPop {
+            0%   { transform: scale(0.3); opacity: 0; }
+            30%  { transform: scale(1.15); opacity: 1; }
+            60%  { transform: scale(1.0); opacity: 1; }
+            100% { transform: scale(1.5); opacity: 0; }
+        }
+
+        /* ── Photo overlay ── */
+        #photo-overlay {
+            position: fixed; inset: 0; z-index: 14;
+            display: flex; justify-content: center; align-items: center;
+            pointer-events: none;
+        }
+        .photo-frame {
+            position: absolute;
+            opacity: 0;
+            transform: scale(0.85) rotate(-1deg);
+            transition: opacity 2.5s ease, transform 2.5s ease;
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow:
+                0 0 30px rgba(255,80,150,0.4),
+                0 0 60px rgba(255,50,120,0.2),
+                0 0 100px rgba(200,40,100,0.1);
+        }
+        .photo-frame.show {
+            opacity: 1;
+            transform: scale(1) rotate(0deg);
+        }
+        .photo-frame img {
+            display: block;
+            max-height: 50vh;
+            max-width: 75vw;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            border-radius: 14px;
+            border: 2px solid rgba(255,180,210,0.3);
+        }
+        .photo-frame .caption {
+            margin-top: 0.8rem;
+            text-align: center;
+            font-family: 'Great Vibes', cursive;
+            font-size: clamp(1rem, 2.8vw, 1.6rem);
+            color: rgba(255,200,225,0.9);
+            text-shadow:
+                0 0 12px rgba(255,80,150,0.6),
+                0 0 30px rgba(255,50,120,0.3);
+            letter-spacing: 0.05em;
+            white-space: nowrap;
+        }
+        .photo-frame .img-wrap {
+            position: relative;
+            border-radius: 16px;
+            overflow: hidden;
+        }
+        .photo-frame .img-wrap::after {
+            content: '';
+            position: absolute; inset: 0;
+            border-radius: 16px;
+            background: radial-gradient(ellipse at center, transparent 40%, rgba(10,0,15,0.4) 100%);
+            pointer-events: none;
+        }
+
+        /* ── Day counter overlay ── */
+        #day-counter {
+            position: fixed; inset: 0; z-index: 16;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 2s ease;
+        }
+        #day-counter.show { opacity: 1; }
+        #day-counter .counter-label {
+            font-family: 'Dancing Script', cursive;
+            font-size: clamp(1.1rem, 3vw, 1.8rem);
+            color: rgba(255,200,225,0.8);
+            letter-spacing: 0.08em;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 0 20px rgba(255,80,150,0.5);
+        }
+        #day-counter .counter-num {
+            font-family: 'Great Vibes', cursive;
+            font-size: clamp(3rem, 10vw, 7rem);
+            color: rgba(255,180,220,0.95);
+            text-shadow:
+                0 0 20px rgba(255,100,170,0.8),
+                0 0 50px rgba(255,60,130,0.4),
+                0 0 100px rgba(255,30,100,0.2);
+        }
+        #day-counter .counter-unit {
+            font-family: 'Great Vibes', cursive;
+            font-size: clamp(1.5rem, 4vw, 2.5rem);
+            color: rgba(255,200,225,0.85);
+            margin-left: 0.3em;
+            text-shadow: 0 0 15px rgba(255,80,150,0.5);
+        }
+        #day-counter .counter-sub {
+            font-family: 'Dancing Script', cursive;
+            font-size: clamp(0.9rem, 2.5vw, 1.3rem);
+            color: rgba(255,180,210,0.6);
+            margin-top: 0.8rem;
+            letter-spacing: 0.1em;
+        }
+    </style>
+</head>
+<body>
+    <!-- Tap to start -->
+    <div id="tap-screen">
+        <div class="big-heart">💝</div>
+        <div class="tap-text">Dành riêng cho em</div>
+        <div class="tap-hint">chạm để bắt đầu</div>
+    </div>
+
+    <!-- Countdown overlay -->
+    <div id="countdown-overlay"></div>
+
+    <!-- Rotate phone overlay (mobile portrait) -->
+    <div id="rotate-overlay">
+        <div class="phone-icon">📱</div>
+        <p>Xoay ngang điện thoại<br>để xem hiệu ứng đẹp nhất 💕</p>
+    </div>
+
+    <div id="loading-screen">
+        <div class="heart-icon">❤️</div>
+        <p>Loading something special for you…</p>
+    </div>
+    <div id="vignette"></div>
+    <canvas id="petal-canvas"></canvas>
+    <div id="text-overlay"></div>
+    <div id="signature">made with ❤️ for you</div>
+
+    <!-- Poem overlay (HTML text, not particles) -->
+    <div id="poem-overlay">
+        <div class="poem" id="poem-0">
+            Giữa thế giới rộng lớn này,<br>
+            anh không tìm điều hoàn hảo,<br>
+            anh chỉ tìm một người để nắm tay…
+        </div>
+        <div class="poem" id="poem-1">
+            <span class="em-line">Là em –</span><br>
+            người khiến những ngày bình thường trở nên đặc biệt,<br>
+            người khiến anh muốn dừng lại,<br>
+            và chọn ở lại.
+        </div>
+        <div class="poem" id="poem-2">
+            Không cần lời hứa xa xôi,<br>
+            không cần tương lai nói trước,<br>
+            chỉ cần hôm nay…<br>
+            <span class="em-line">anh còn được yêu em<br>theo cách trọn vẹn nhất.</span>
+        </div>
+    </div>
+
+    <!-- Photo overlay -->
+    <div id="photo-overlay">
+        <div class="photo-frame" id="photo-0">
+            <div class="img-wrap"><img src="img/36fe826d-02ed-4c0c-832c-a569c3f917d3.jpg" alt=""></div>
+            <div class="caption">Mãi là của anh ❤</div>
+        </div>
+        <div class="photo-frame" id="photo-1">
+            <div class="img-wrap"><img src="img/997b1fc9-5f36-4391-a1fc-e142895e71cb.jpg" alt=""></div>
+            <div class="caption">Nụ cười anh yêu nhất ❤</div>
+        </div>
+        <div class="photo-frame" id="photo-2">
+            <div class="img-wrap"><img src="img/cee0bb02-b1e3-41d5-8813-779536f2c74c.jpg" alt=""></div>
+            <div class="caption">Cả thế giới là em ❤</div>
+        </div>
+    </div>
+
+    <!-- Day counter overlay -->
+    <div id="day-counter">
+        <div class="counter-label">Đã yêu em được</div>
+        <div><span class="counter-num" id="day-num">0</span><span class="counter-unit">ngày</span></div>
+        <div class="counter-sub">và sẽ không bao giờ dừng lại ❤</div>
+    </div>
+
+    <!-- Preload images -->
+    <script>
+        ['img/36fe826d-02ed-4c0c-832c-a569c3f917d3.jpg',
+         'img/997b1fc9-5f36-4391-a1fc-e142895e71cb.jpg',
+         'img/cee0bb02-b1e3-41d5-8813-779536f2c74c.jpg'].forEach(src => {
+            const img = new Image(); img.src = src;
+        });
+    </script>
+
+    <!-- Background Music -->
+    <audio id="bg-music" loop preload="auto">
+        <source src="music.mp3" type="audio/mpeg">
+    </audio>
+
+    <!-- Music toggle button -->
+    <button id="music-toggle" title="Bật/Tắt nhạc">🎵</button>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <script type="module">
+    /* ── Try to auto-lock landscape on mobile ── */
+    try {
+        if (screen.orientation && screen.orientation.lock) {
+            screen.orientation.lock('landscape').catch(()=>{});
+        }
+    } catch(e){}
+
+    import * as THREE from 'three';
+    import { EffectComposer }  from 'three/addons/postprocessing/EffectComposer.js';
+    import { RenderPass }      from 'three/addons/postprocessing/RenderPass.js';
+    import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+    import { OutputPass }      from 'three/addons/postprocessing/OutputPass.js';
+
+    // ═══════════════════════════════════════════
+    //  THEME COLORS
+    // ═══════════════════════════════════════════
+    const C = {
+        primary:   new THREE.Color(0xff5588),
+        secondary: new THREE.Color(0xffc040),
+        accent:    new THREE.Color(0xffddaa),
+        core:      new THREE.Color(0xff2050),
+        white:     new THREE.Color(0xffffff),
+        particle1: 0xffd060,
+        particle2: 0xff90c0,
+        light1:    0xff9050,
+        light2:    0xffc060,
+        light3:    0xffddaa,
+    };
+
+    // ═══════════════════════════════════════════
+    //  SCENE SETUP
+    // ═══════════════════════════════════════════
+    const scene  = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 150);
+    camera.position.set(0, 0, 11);
+    camera.lookAt(0, 0, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.1;
+    document.body.appendChild(renderer.domElement);
+
+    // Background gradient
+    const bgC = document.createElement('canvas');
+    bgC.width = 2; bgC.height = 512;
+    const bgX = bgC.getContext('2d');
+    const bgTex = new THREE.CanvasTexture(bgC);
+    scene.background = bgTex;
+    scene.fog = new THREE.FogExp2(0x050008, 0.012);
+
+    // Animated gradient background (dark purple → dark blue → dark red)
+    function updateBgGradient(t) {
+        const p = t * 0.04;
+        const r1 = Math.max(0, Math.min(255, Math.floor(13 + Math.sin(p)*6 + Math.sin(p*0.7+1)*4)));
+        const g1 = Math.max(0, Math.min(255, Math.floor(0 + Math.max(0, Math.sin(p*0.5+2)*5))));
+        const b1 = Math.max(0, Math.min(255, Math.floor(24 + Math.sin(p*0.8+4)*12)));
+        const r2 = Math.max(0, Math.min(255, Math.floor(3 + Math.sin(p*0.6+1)*5)));
+        const g2 = Math.max(0, Math.min(255, Math.floor(0 + Math.max(0, Math.sin(p*0.4+3)*3))));
+        const b2 = Math.max(0, Math.min(255, Math.floor(8 + Math.sin(p*0.9+5)*7)));
+        const grad = bgX.createLinearGradient(0, 0, 0, 512);
+        grad.addColorStop(0, `rgb(${r1},${g1},${b1})`);
+        grad.addColorStop(1, `rgb(${r2},${g2},${b2})`);
+        bgX.fillStyle = grad;
+        bgX.fillRect(0, 0, 2, 512);
+        bgTex.needsUpdate = true;
+    }
+    updateBgGradient(0);
+
+    // Post-processing
+    const composer = new EffectComposer(renderer);
+    composer.addPass(new RenderPass(scene, camera));
+    const bloom = new UnrealBloomPass(
+        new THREE.Vector2(innerWidth, innerHeight), 1.6, 0.7, 0.55
+    );
+    composer.addPass(bloom);
+    composer.addPass(new OutputPass());
+
+    // Lights
+    scene.add(new THREE.AmbientLight(0x221122, 0.5));
+    const pL1 = new THREE.PointLight(C.light1, 3.0, 30);
+    pL1.position.set(5, 4, 5);   scene.add(pL1);
+    const pL2 = new THREE.PointLight(C.light2, 2.5, 30);
+    pL2.position.set(-5, -3, 6); scene.add(pL2);
+    const pL3 = new THREE.PointLight(C.light3, 1.2, 25);
+    pL3.position.set(0, 6, 3);   scene.add(pL3);
+
+    // Easing
+    function easeInOutCubic(t) { return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2; }
+    function easeInOutQuint(t) { return t < 0.5 ? 16*t*t*t*t*t : 1 - Math.pow(-2*t+2,5)/2; }
+    function easeOutExpo(t)    { return t >= 1 ? 1 : 1 - Math.pow(2, -10*t); }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  TEXT SYSTEM — ALL text is now rendered by particles
+    //  (no HTML text overlay)
+    // ═══════════════════════════════════════════════════════════════
+    const overlay = document.getElementById('text-overlay');
+    overlay.style.display = 'none'; // disable HTML text
+
+    // ── Text messages sequence (after heart) ──
+    const TEXT_MSGS = [
+        { text: "Happy New Year",          font: "bold 100px 'Dancing Script'", scale: 1.3 },
+        { text: "2026",                    font: "bold 160px 'Great Vibes'",    scale: 1.5 },
+        { text: "Duy Hoàng ❤ Phương Anh",font: "bold 82px 'Great Vibes'",     scale: 1.4 },
+        { text: "Cam đoan bên em",        font: "600 68px 'Dancing Script'",   scale: 1.25 },
+        { text: "Cam chịu tính em",       font: "600 68px 'Dancing Script'",   scale: 1.25 },
+        { text: "Cam lòng chỉ có em",     font: "600 68px 'Dancing Script'",   scale: 1.25 },
+        { text: "Cam kết yêu em",         font: "600 68px 'Dancing Script'",   scale: 1.25 },
+        { text: "Yêu em mãi ❤",          font: "bold 100px 'Great Vibes'",    scale: 1.35 },
+    ];
+
+    // ── Canvas text → particle positions ──
+    const textCanvas = document.createElement('canvas');
+    textCanvas.width = 1000; textCanvas.height = 500;
+    const textCtx = textCanvas.getContext('2d');
+
+    function textToPoints(msg, count) {
+        const cvs = textCanvas, ctx = textCtx;
+        ctx.clearRect(0, 0, cvs.width, cvs.height);
+        ctx.fillStyle = '#fff';
+        ctx.font = msg.font;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        // Multi-line support
+        const lines = msg.text.split('\n');
+        if (lines.length > 1) {
+            const lineH = parseInt(msg.font) * 1.45;
+            const totalH = lines.length * lineH;
+            const startY = cvs.height/2 - totalH/2 + lineH/2;
+            for (let li=0; li<lines.length; li++) {
+                ctx.fillText(lines[li], cvs.width/2, startY + li*lineH);
+            }
+        } else {
+            ctx.fillText(msg.text, cvs.width/2, cvs.height/2);
+        }
+
+        // Read pixel data
+        const imgData = ctx.getImageData(0, 0, cvs.width, cvs.height);
+        const pixels = imgData.data;
+
+        // Collect all lit pixel positions
+        const litPixels = [];
+        for (let py = 0; py < cvs.height; py++) {
+            for (let px = 0; px < cvs.width; px++) {
+                const idx = (py * cvs.width + px) * 4;
+                if (pixels[idx + 3] > 100) { // alpha threshold
+                    litPixels.push([px, py, pixels[idx+3]/255]);
+                }
+            }
+        }
+
+        // Sample 'count' points from lit pixels
+        const points = [];
+        const sc = msg.scale * 0.015; // world units per pixel
+        const cx = cvs.width / 2;
+        const cy = cvs.height / 2;
+
+        for (let i = 0; i < count; i++) {
+            if (litPixels.length === 0) {
+                // Fallback: scatter around center
+                points.push([
+                    (Math.random()-0.5)*2,
+                    (Math.random()-0.5)*1,
+                    (Math.random()-0.5)*0.3
+                ]);
+                continue;
+            }
+            const pix = litPixels[Math.floor(Math.random() * litPixels.length)];
+            const x = (pix[0] - cx) * sc + (Math.random()-0.5)*sc*0.5;
+            const y = -(pix[1] - cy) * sc + (Math.random()-0.5)*sc*0.5;
+            const z = (Math.random()-0.5) * 0.25;
+            points.push([x, y, z]);
+        }
+        return points;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  PARTICLE SYSTEM — 8000 particles, morph between shapes
+    // ═══════════════════════════════════════════════════════════════
+    const P_COUNT = 12000;
+
+    // ── Shape 1: Heart ──
+    function heartPoint3D(u, v) {
+        const a = u * Math.PI * 2;
+        let x = 16 * Math.pow(Math.sin(a), 3);
+        let y = 13 * Math.cos(a) - 5*Math.cos(2*a) - 2*Math.cos(3*a) - Math.cos(4*a);
+        const sc = 0.21;
+        x *= sc; y *= sc;
+        y += 0.15;
+        const thick = 0.65;
+        const dist = Math.sqrt(x*x + y*y);
+        const tf = 1.0 - Math.pow(dist / (16*sc), 1.2) * 0.5;
+        const z = v * thick * tf;
+        return [x, y, z];
+    }
+
+    function sampleHeart() {
+        const u = Math.random();
+        let v = Math.random() * 2 - 1;
+        const r = Math.random();
+        if (r < 0.35) {
+            v = (Math.pow(Math.abs(v), 0.25) * Math.sign(v));
+        } else if (r > 0.75) {
+            v *= 0.25;
+        }
+        return heartPoint3D(u, v);
+    }
+
+    // ── Pre-generate all targets ──
+    // Heart is always index 0; text messages are generated dynamically
+    const targets = { heart: [] };
+    for (let i = 0; i < P_COUNT; i++) {
+        targets.heart.push(sampleHeart());
+    }
+
+    // Pre-render text targets for all messages
+    const textTargets = [];
+    // Use setTimeout to allow fonts to load, but also generate immediately as fallback
+    function generateAllTextTargets() {
+        textTargets.length = 0;
+        for (let m = 0; m < TEXT_MSGS.length; m++) {
+            textTargets.push(textToPoints(TEXT_MSGS[m], P_COUNT));
+        }
+    }
+    generateAllTextTargets();
+    // Re-generate after fonts likely loaded
+    setTimeout(generateAllTextTargets, 1500);
+
+    // ── Particle data ──
+    const pos       = new Float32Array(P_COUNT * 3);
+    const color     = new Float32Array(P_COUNT * 3);
+    const size      = new Float32Array(P_COUNT);
+    const alpha     = new Float32Array(P_COUNT);
+    const phase     = new Float32Array(P_COUNT);
+    const swirlR    = new Float32Array(P_COUNT);
+    const swirlSpd  = new Float32Array(P_COUNT);
+    const swirlOff  = new Float32Array(P_COUNT);
+    const swirlY    = new Float32Array(P_COUNT);
+    const delay     = new Float32Array(P_COUNT);
+
+    // Per-particle base size (varies by shape, set during morph)
+    const baseSize  = new Float32Array(P_COUNT);
+
+    for (let i = 0; i < P_COUNT; i++) {
+        // Initial scattered positions
+        const th = Math.random() * Math.PI * 2;
+        const ph = Math.acos(2*Math.random()-1);
+        const r  = 5 + Math.random() * 10;
+        pos[i*3]   = r * Math.sin(ph) * Math.cos(th);
+        pos[i*3+1] = r * Math.sin(ph) * Math.sin(th);
+        pos[i*3+2] = r * Math.cos(ph);
+
+        swirlR[i]   = 3 + Math.random() * 6;
+        swirlSpd[i] = 1 + Math.random() * 2.5;
+        swirlOff[i] = Math.random() * Math.PI * 2;
+        swirlY[i]   = (Math.random() - 0.5) * 8;
+        phase[i]    = Math.random() * Math.PI * 2;
+
+        baseSize[i] = 0.04 + Math.random() * 0.06;
+        size[i]     = baseSize[i];
+        alpha[i]    = 0;
+
+        // Initial heart color
+        const tgt = targets.heart[i];
+        const d = Math.sqrt(tgt[0]*tgt[0]+tgt[1]*tgt[1]+tgt[2]*tgt[2]);
+        const lf = Math.min(d / 2.5, 1.0);
+        const col = new THREE.Color().lerpColors(C.core, C.secondary, lf * 0.7);
+        if (i >= P_COUNT * 0.75) col.lerp(C.white, 0.35);
+        else col.lerp(C.accent, Math.random() * 0.2);
+        color[i*3]   = col.r;
+        color[i*3+1] = col.g;
+        color[i*3+2] = col.b;
+
+        // Stagger
+        delay[i] = d * 0.15 + Math.random() * 0.8;
+    }
+
+    // ── Shader ──
+    const vertSh = `
+        attribute float aSize;
+        attribute float aAlpha;
+        attribute vec3  aColor;
+        varying   float vAlpha;
+        varying   vec3  vColor;
+        void main() {
+            vAlpha = aAlpha;
+            vColor = aColor;
+            vec4 mv = modelViewMatrix * vec4(position, 1.0);
+            gl_PointSize = aSize * (300.0 / -mv.z);
+            gl_Position  = projectionMatrix * mv;
+        }
+    `;
+    const fragSh = `
+        varying float vAlpha;
+        varying vec3  vColor;
+        void main() {
+            vec2  uv = gl_PointCoord - 0.5;
+            float d  = length(uv);
+            if (d > 0.5) discard;
+            float glow = pow(1.0 - smoothstep(0.0, 0.5, d), 1.3);
+            float core = 1.0 - smoothstep(0.0, 0.12, d);
+            vec3  col  = vColor + vec3(core * 0.55);
+            gl_FragColor = vec4(col, glow * vAlpha);
+        }
+    `;
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('aColor',   new THREE.BufferAttribute(color, 3));
+    geo.setAttribute('aSize',    new THREE.BufferAttribute(size, 1));
+    geo.setAttribute('aAlpha',   new THREE.BufferAttribute(alpha, 1));
+
+    const mat = new THREE.ShaderMaterial({
+        vertexShader: vertSh, fragmentShader: fragSh,
+        transparent: true, blending: THREE.AdditiveBlending, depthWrite: false,
+    });
+    const particles = new THREE.Points(geo, mat);
+    scene.add(particles);
+
+    // ── Trail sparkles ──
+    const TR = 6000;
+    const trPos = new Float32Array(TR*3);
+    const trA   = new Float32Array(TR);
+    const trL   = new Float32Array(TR);
+    const trV   = new Float32Array(TR*3);
+    let trI = 0;
+    for (let i=0;i<TR;i++) { trA[i]=0; trL[i]=0; }
+
+    const trGeo = new THREE.BufferGeometry();
+    trGeo.setAttribute('position', new THREE.BufferAttribute(trPos,3));
+    trGeo.setAttribute('aAlpha',   new THREE.BufferAttribute(trA,1));
+    const trMat = new THREE.ShaderMaterial({
+        vertexShader: `
+            attribute float aAlpha;
+            varying float vAlpha;
+            void main(){
+                vAlpha=aAlpha;
+                vec4 mv=modelViewMatrix*vec4(position,1.0);
+                gl_PointSize=aAlpha*(140.0/-mv.z);
+                gl_Position=projectionMatrix*mv;
+            }`,
+        fragmentShader: `
+            varying float vAlpha;
+            void main(){
+                vec2 uv=gl_PointCoord-0.5;
+                float d=length(uv);
+                if(d>0.5)discard;
+                float g=pow(1.0-smoothstep(0.0,0.5,d),1.5);
+                gl_FragColor=vec4(1.0,0.65,0.82,g*vAlpha*0.7);
+            }`,
+        transparent:true, blending:THREE.AdditiveBlending, depthWrite:false,
+    });
+    scene.add(new THREE.Points(trGeo, trMat));
+
+    function emitTrail(x,y,z,vx,vy,vz,life) {
+        const ti=trI%TR;
+        trPos[ti*3]=x; trPos[ti*3+1]=y; trPos[ti*3+2]=z;
+        trV[ti*3]=vx; trV[ti*3+1]=vy; trV[ti*3+2]=vz;
+        trA[ti]=1.0; trL[ti]=life;
+        trI++;
+    }
+
+    // ═══════════════════════════════════════════
+    //  BACKGROUND PARTICLES (dense + dynamic)
+    // ═══════════════════════════════════════════
+    function makeGlowTex(sz=64) {
+        const c=document.createElement('canvas'); c.width=c.height=sz;
+        const x=c.getContext('2d');
+        const g=x.createRadialGradient(sz/2,sz/2,0,sz/2,sz/2,sz/2);
+        g.addColorStop(0,'rgba(255,255,255,1)');
+        g.addColorStop(0.12,'rgba(255,230,245,0.85)');
+        g.addColorStop(0.35,'rgba(255,160,210,0.35)');
+        g.addColorStop(0.7,'rgba(255,80,150,0.08)');
+        g.addColorStop(1,'rgba(0,0,0,0)');
+        x.fillStyle=g; x.fillRect(0,0,sz,sz);
+        return new THREE.CanvasTexture(c);
+    }
+    function makeStarTex(sz=48) {
+        const c=document.createElement('canvas'); c.width=c.height=sz;
+        const x=c.getContext('2d');
+        x.save(); x.translate(sz/2,sz/2);
+        const sp=4, oR=sz*0.38, iR=sz*0.1;
+        x.beginPath();
+        for(let i=0;i<sp*2;i++){
+            const r=i%2===0?oR:iR;
+            const a=(i/(sp*2))*Math.PI*2-Math.PI/2;
+            x.lineTo(Math.cos(a)*r,Math.sin(a)*r);
+        }
+        x.closePath();
+        x.shadowColor='white'; x.shadowBlur=sz*0.2;
+        x.fillStyle='white'; x.fill(); x.restore();
+        return new THREE.CanvasTexture(c);
+    }
+    const glowTex = makeGlowTex();
+    const starTex = makeStarTex();
+
+    // Layer 1: Dense sparkle dust (rises + swirls)
+    const BG=3500;
+    const bgP=new Float32Array(BG*3), bgS=new Float32Array(BG);
+    const bgDrift=new Float32Array(BG); // per-particle lateral drift speed
+    for(let i=0;i<BG;i++){
+        bgP[i*3]=(Math.random()-0.5)*50;
+        bgP[i*3+1]=(Math.random()-0.5)*50;
+        bgP[i*3+2]=(Math.random()-0.5)*35-6;
+        bgS[i]=0.05+Math.random()*0.25;
+        bgDrift[i]=(Math.random()-0.5)*0.8;
+    }
+    const bgGeo=new THREE.BufferGeometry();
+    bgGeo.setAttribute('position',new THREE.BufferAttribute(bgP,3));
+    const bgPts=new THREE.Points(bgGeo,new THREE.PointsMaterial({
+        size:0.07,map:glowTex,transparent:true,
+        blending:THREE.AdditiveBlending,depthWrite:false,
+        color:C.particle1,opacity:0.7,sizeAttenuation:true,
+    }));
+    scene.add(bgPts);
+
+    // Layer 2: Floating stars / shapes (slower, mid-size)
+    const BG2=600;
+    const bg2P=new Float32Array(BG2*3), bg2S=new Float32Array(BG2);
+    for(let i=0;i<BG2;i++){
+        bg2P[i*3]=(Math.random()-0.5)*40;
+        bg2P[i*3+1]=(Math.random()-0.5)*40;
+        bg2P[i*3+2]=(Math.random()-0.5)*25-5;
+        bg2S[i]=0.03+Math.random()*0.14;
+    }
+    const bg2Geo=new THREE.BufferGeometry();
+    bg2Geo.setAttribute('position',new THREE.BufferAttribute(bg2P,3));
+    const bg2Pts=new THREE.Points(bg2Geo,new THREE.PointsMaterial({
+        size:0.18,map:starTex,transparent:true,
+        blending:THREE.AdditiveBlending,depthWrite:false,
+        color:C.particle2,opacity:0.5,sizeAttenuation:true,
+    }));
+    scene.add(bg2Pts);
+
+    // Layer 3: Large soft bokeh (slow, dreamy)
+    const BK=300;
+    const bkP=new Float32Array(BK*3), bkS=new Float32Array(BK);
+    for(let i=0;i<BK;i++){
+        bkP[i*3]=(Math.random()-0.5)*40;
+        bkP[i*3+1]=(Math.random()-0.5)*40;
+        bkP[i*3+2]=(Math.random()-0.5)*25-8;
+        bkS[i]=0.02+Math.random()*0.06;
+    }
+    const bkGeo=new THREE.BufferGeometry();
+    bkGeo.setAttribute('position',new THREE.BufferAttribute(bkP,3));
+    const bkPts=new THREE.Points(bkGeo,new THREE.PointsMaterial({
+        size:0.55,map:glowTex,transparent:true,
+        blending:THREE.AdditiveBlending,depthWrite:false,
+        color:0xffffff,opacity:0.18,sizeAttenuation:true,
+    }));
+    scene.add(bkPts);
+
+    // Layer 4: Large dreamy bokeh circles
+    const BK2=50;
+    const bk2P=new Float32Array(BK2*3);
+    const bk2Spd=new Float32Array(BK2);
+    for(let i=0;i<BK2;i++){
+        bk2P[i*3]=(Math.random()-0.5)*40;
+        bk2P[i*3+1]=(Math.random()-0.5)*30;
+        bk2P[i*3+2]=-10-Math.random()*12;
+        bk2Spd[i]=0.01+Math.random()*0.03;
+    }
+    const bk2Geo=new THREE.BufferGeometry();
+    bk2Geo.setAttribute('position',new THREE.BufferAttribute(bk2P,3));
+    const bk2Pts=new THREE.Points(bk2Geo,new THREE.PointsMaterial({
+        size:4.0,map:glowTex,transparent:true,
+        blending:THREE.AdditiveBlending,depthWrite:false,
+        color:0xff90c0,opacity:0.05,sizeAttenuation:true,
+    }));
+    scene.add(bk2Pts);
+
+    // ═══════════════════════════════════════════════════════════════
+    //  � HEART FIREWORKS — little hearts that burst like fireworks
+    // ═══════════════════════════════════════════════════════════════
+    const FW_MAX = 3500; // max firework particles alive at once
+    const fwPos = new Float32Array(FW_MAX * 3);
+    const fwAlpha = new Float32Array(FW_MAX);
+    const fwVel = new Float32Array(FW_MAX * 3);
+    const fwLife = new Float32Array(FW_MAX);
+    const fwMaxLife = new Float32Array(FW_MAX);
+    let fwIdx = 0;
+    for (let i = 0; i < FW_MAX; i++) { fwAlpha[i] = 0; fwLife[i] = 0; }
+
+    const fwGeo = new THREE.BufferGeometry();
+    fwGeo.setAttribute('position', new THREE.BufferAttribute(fwPos, 3));
+    fwGeo.setAttribute('aAlpha', new THREE.BufferAttribute(fwAlpha, 1));
+    const fwMat = new THREE.ShaderMaterial({
+        vertexShader: `
+            attribute float aAlpha;
+            varying float vAlpha;
+            void main(){
+                vAlpha = aAlpha;
+                vec4 mv = modelViewMatrix * vec4(position, 1.0);
+                gl_PointSize = aAlpha * (180.0 / -mv.z);
+                gl_Position = projectionMatrix * mv;
+            }`,
+        fragmentShader: `
+            varying float vAlpha;
+            void main(){
+                vec2 uv = gl_PointCoord - 0.5;
+                float d = length(uv);
+                if(d > 0.5) discard;
+                float glow = pow(1.0 - smoothstep(0.0, 0.5, d), 1.8);
+                vec3 col = mix(vec3(1.0,0.4,0.6), vec3(1.0,0.85,0.5), vAlpha);
+                gl_FragColor = vec4(col, glow * vAlpha * 0.85);
+            }`,
+        transparent: true, blending: THREE.AdditiveBlending, depthWrite: false,
+    });
+    scene.add(new THREE.Points(fwGeo, fwMat));
+
+    // Mini heart shape for firework burst pattern
+    function heartDir(angle) {
+        const a = angle;
+        const x = 16 * Math.pow(Math.sin(a), 3);
+        const y = 13 * Math.cos(a) - 5*Math.cos(2*a) - 2*Math.cos(3*a) - Math.cos(4*a);
+        return [x / 16, y / 16]; // normalized ~[-1,1]
+    }
+
+    function launchHeartFirework(cx, cy, cz, size, color_t) {
+        // Burst N particles in a heart shape — slow & graceful
+        const N = 35 + Math.floor(Math.random() * 25);
+        const speed = 0.55 + Math.random() * 0.5;  // much slower expansion
+        for (let i = 0; i < N; i++) {
+            const fi = fwIdx % FW_MAX;
+            const angle = (i / N) * Math.PI * 2;
+            const [hx, hy] = heartDir(angle);
+            const spread = 0.85 + Math.random() * 0.3;
+            fwPos[fi*3]   = cx;
+            fwPos[fi*3+1] = cy;
+            fwPos[fi*3+2] = cz;
+            fwVel[fi*3]   = hx * speed * size * spread + (Math.random()-0.5)*0.12;
+            fwVel[fi*3+1] = hy * speed * size * spread + (Math.random()-0.5)*0.12;
+            fwVel[fi*3+2] = (Math.random()-0.5) * 0.15;
+            const life = 2.8 + Math.random() * 1.8;  // live much longer
+            fwLife[fi] = life;
+            fwMaxLife[fi] = life;
+            fwAlpha[fi] = 1.0;
+            fwIdx++;
+        }
+    }
+
+    let lastFireworkT = 0;
+    const FW_INTERVAL_MIN = 0.8;
+    const FW_INTERVAL_MAX = 1.8;
+    let nextFireworkT = 2.0 + Math.random() * 1;
+
+    function updateFireworks(t, dt) {
+        // Launch 1 heart at a time — while previous ones are still blooming
+        if (t >= nextFireworkT) {
+            const fx = (Math.random()-0.5) * 18;
+            const fy = (Math.random()-0.5) * 12;
+            const fz = -2 - Math.random() * 8;
+            const sz = 0.4 + Math.random() * 0.6;
+            launchHeartFirework(fx, fy, fz, sz);
+            nextFireworkT = t + FW_INTERVAL_MIN + Math.random() * (FW_INTERVAL_MAX - FW_INTERVAL_MIN);
+        }
+
+        // Update existing particles
+        for (let i = 0; i < FW_MAX; i++) {
+            if (fwLife[i] > 0) {
+                fwLife[i] -= dt;
+                const lifeRatio = Math.max(0, fwLife[i] / fwMaxLife[i]);
+                fwAlpha[i] = lifeRatio * lifeRatio; // fade out with easing
+
+                const i3 = i * 3;
+                fwPos[i3]   += fwVel[i3]   * dt;
+                fwPos[i3+1] += fwVel[i3+1] * dt;
+                fwPos[i3+2] += fwVel[i3+2] * dt;
+
+                // Very gentle gravity + minimal drag — hearts float gracefully
+                fwVel[i3+1] -= dt * 0.12;
+                fwVel[i3]   *= 0.995;
+                fwVel[i3+1] *= 0.995;
+                fwVel[i3+2] *= 0.995;
+            } else {
+                fwAlpha[i] = 0;
+            }
+        }
+        fwGeo.attributes.position.needsUpdate = true;
+        fwGeo.attributes.aAlpha.needsUpdate = true;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  HEART ARROW RAIN -- many arrows fly across during HNY
+    // ═══════════════════════════════════════════════════════════════
+    const AR_MAX = 10;
+    const arrows = [];
+    for (let i=0;i<AR_MAX;i++) arrows.push({active:false,x:0,y:0,z:0,vx:0,vy:0,vz:0,life:0,maxLife:0});
+    let arrowTimer = 0;
+
+    function spawnArrow() {
+        let a=null;
+        for(let i=0;i<AR_MAX;i++){if(!arrows[i].active){a=arrows[i];break;}}
+        if(!a) return;
+        a.active=true;
+        // Spawn from left, right, or top only
+        const side=Math.random();
+        if(side<0.35){
+            // from left
+            a.x=-12-Math.random()*3; a.y=2+(Math.random()-0.3)*6;
+            a.vx=5+Math.random()*4; a.vy=-0.5+Math.random()*2;
+        } else if(side<0.7){
+            // from right
+            a.x=12+Math.random()*3; a.y=2+(Math.random()-0.3)*6;
+            a.vx=-(5+Math.random()*4); a.vy=-0.5+Math.random()*2;
+        } else {
+            // from top (rain down)
+            a.x=(Math.random()-0.5)*18; a.y=8+Math.random()*3;
+            a.vx=(Math.random()-0.5)*3; a.vy=-(3+Math.random()*3);
+        }
+        a.z=1+Math.random()*2;
+        a.vz=(Math.random()-0.5)*0.3;
+        a.life=1.0+Math.random()*0.8;
+        a.maxLife=a.life;
+    }
+
+    function updateArrows(t,dt,isHNY) {
+        // Spawn arrows only during Happy New Year text (idx 0)
+        if(isHNY){
+            arrowTimer-=dt;
+            if(arrowTimer<=0){
+                spawnArrow();
+                arrowTimer=0.4+Math.random()*0.5;
+            }
+        }
+        // Update all active arrows
+        for(let i=0;i<AR_MAX;i++){
+            const a=arrows[i];
+            if(!a.active) continue;
+            a.life-=dt;
+            if(a.life<=0){
+                // Heart explosion at end!
+                for(let j=0;j<25;j++){
+                    const ang=(j/25)*Math.PI*2;
+                    const[hx,hy]=heartDir(ang);
+                    emitTrail(a.x,a.y,a.z,
+                        hx*2.5+(Math.random()-0.5)*0.5,
+                        hy*2.5+(Math.random()-0.5)*0.5,
+                        (Math.random()-0.5)*0.5,
+                        0.5+Math.random()*0.4);
+                }
+                a.active=false;
+                continue;
+            }
+            a.x+=a.vx*dt; a.y+=a.vy*dt; a.z+=a.vz*dt;
+            a.vy-=dt*1.8; // gravity arc
+            // Sparkle trail
+            const rate=a.life/a.maxLife>0.5?3:2;
+            for(let j=0;j<rate;j++){
+                emitTrail(
+                    a.x+(Math.random()-0.5)*0.08,
+                    a.y+(Math.random()-0.5)*0.08,
+                    a.z+(Math.random()-0.5)*0.08,
+                    -a.vx*0.04+(Math.random()-0.5)*0.5,
+                    -a.vy*0.04+(Math.random()-0.5)*0.5+0.2,
+                    (Math.random()-0.5)*0.2,
+                    0.3+Math.random()*0.4);
+            }
+            // Off screen check
+            if(Math.abs(a.x)>16||a.y<-10||a.y>12){
+                a.active=false;
+            }
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  �🎬 SCENE TIMELINE
+    //
+    //  0-1.5s       Swirl chaos
+    //  1.5-7s       Formation → Heart
+    //  7-14s        Heart beats
+    //  14+          Cycle through text messages (each 7s hold + 3.5s morph)
+    // ═══════════════════════════════════════════════════════════════
+
+    // ═════════════════════════════════════════════════════════════
+    //  SHOOTING STARS
+    // ═════════════════════════════════════════════════════════════
+    const shootingStars = [];
+    let ssTimer = 2 + Math.random() * 4;
+
+    function spawnShootingStar() {
+        const fromRight = Math.random() > 0.5;
+        shootingStars.push({
+            x: fromRight ? (8 + Math.random()*12) : (-8 - Math.random()*12),
+            y: 5 + Math.random()*8,
+            z: -4 - Math.random()*10,
+            vx: fromRight ? -(8 + Math.random()*10) : (8 + Math.random()*10),
+            vy: -(3 + Math.random()*5),
+            life: 0.5 + Math.random()*0.5,
+        });
+    }
+
+    function updateShootingStars(t, dt) {
+        ssTimer -= dt;
+        if (ssTimer <= 0) {
+            spawnShootingStar();
+            if (Math.random() < 0.3) setTimeout(spawnShootingStar, 150 + Math.random()*300);
+            ssTimer = 4 + Math.random()*7;
+        }
+        for (let i = shootingStars.length-1; i >= 0; i--) {
+            const s = shootingStars[i];
+            s.life -= dt;
+            if (s.life <= 0) { shootingStars.splice(i,1); continue; }
+            s.x += s.vx * dt;
+            s.y += s.vy * dt;
+            const bright = s.life > 0.3 ? 1 : s.life/0.3;
+            for (let j=0; j<Math.ceil(5*bright); j++) {
+                emitTrail(
+                    s.x+(Math.random()-0.5)*0.05,
+                    s.y+(Math.random()-0.5)*0.05,
+                    s.z+(Math.random()-0.5)*0.03,
+                    -s.vx*0.015+(Math.random()-0.5)*0.2,
+                    -s.vy*0.015+(Math.random()-0.5)*0.2,
+                    (Math.random()-0.5)*0.08,
+                    0.3+Math.random()*0.5
+                );
+            }
+        }
+    }
+
+    const T_SWIRL_END   = 1.5;
+    const T_HEART_DONE  = 7.0;
+    const T_HEART_HOLD  = 14.0;  // heart shows for ~7s after formation
+    const TEXT_HOLD_DUR  = 7.0;  // each text message displayed
+    const MORPH_DUR      = 3.5;  // morph transition
+
+    // Build scene schedule: heart → text0 → text1 → ... → heart (loop)
+    let currentShape     = 'heart';
+    let currentTextIdx   = -1;   // -1 = heart
+    let morphing         = false;
+    let morphStartT      = 0;
+    let morphFromShape   = 'heart';
+    let morphToShape     = 'text';
+    let morphFrom        = targets.heart;
+    let morphTo          = targets.heart;
+    let colorsSet        = false;
+    let nextMorphT       = T_HEART_HOLD; // time to start next morph
+
+    function getCurrentTargetArray() {
+        if (currentTextIdx < 0) return targets.heart;
+        return textTargets[currentTextIdx] || targets.heart;
+    }
+
+    function getNextTextIdx() {
+        return (currentTextIdx + 1) % TEXT_MSGS.length;
+    }
+
+    // Color for text particles: warm golden-white with pink tones
+    function colorForText(i) {
+        const lf = Math.random();
+        const col = new THREE.Color().lerpColors(
+            new THREE.Color(0xffcc88),
+            new THREE.Color(0xff88bb), lf * 0.5
+        );
+        col.lerp(new THREE.Color(0xffffff), 0.3 + Math.random()*0.2);
+        return col;
+    }
+
+    function colorForHeart(i) {
+        const tgt = targets.heart[i];
+        const d = Math.sqrt(tgt[0]*tgt[0]+tgt[1]*tgt[1]+tgt[2]*tgt[2]);
+        const lf = Math.min(d / 2.5, 1.0);
+        const col = new THREE.Color().lerpColors(C.core, C.secondary, lf * 0.7);
+        if (i >= P_COUNT * 0.75) col.lerp(C.white, 0.35);
+        else col.lerp(C.accent, Math.random() * 0.2);
+        return col;
+    }
+
+    function colorForShape(shape, i) {
+        if (shape === 'heart') return colorForHeart(i);
+        return colorForText(i);
+    }
+
+    function startMorph(toTextIdx, t) {
+        morphing = true;
+        morphStartT = t;
+        morphFromShape = currentTextIdx < 0 ? 'heart' : 'text';
+        morphFrom = getCurrentTargetArray();
+
+        if (toTextIdx < 0) {
+            // Morph to heart
+            morphToShape = 'heart';
+            morphTo = targets.heart;
+        } else {
+            // Morph to text
+            morphToShape = 'text';
+            morphTo = textTargets[toTextIdx] || targets.heart;
+        }
+        colorsSet = false;
+    }
+
+    // ── Poem phase (HTML text, shown between last particle-text and heart restart) ──
+    const POEMS = [
+        document.getElementById('poem-0'),
+        document.getElementById('poem-1'),
+        document.getElementById('poem-2'),
+    ];
+    const POEM_DUR = 9; // seconds each poem shows (longer for typewriter)
+    let poemPhase = false;
+    let poemIdx = -1;
+    let poemT = 0;
+
+    // Store original HTML for each poem
+    const POEM_RAW = POEMS.map(p => p.innerHTML);
+    let twTimers = [];
+
+    function wrapForTypewriter(html) {
+        // Split into chars, preserve <br> and <span> tags
+        let result = '';
+        let inTag = false;
+        let charIdx = 0;
+        for (let i = 0; i < html.length; i++) {
+            if (html[i] === '<') {
+                inTag = true;
+                // Check for <br> specifically
+                if (html.substring(i).match(/^<br\s*\/?>/i)) {
+                    const m = html.substring(i).match(/^<br\s*\/?>/i);
+                    result += m[0];
+                    i += m[0].length - 1;
+                    inTag = false;
+                    continue;
+                }
+                // Pass through other tags (span etc)
+                const closeIdx = html.indexOf('>', i);
+                if (closeIdx >= 0) {
+                    result += html.substring(i, closeIdx + 1);
+                    i = closeIdx;
+                    inTag = false;
+                    continue;
+                }
+            }
+            if (!inTag) {
+                result += `<span class="tw-char" data-tw="${charIdx}">${html[i]}</span>`;
+                charIdx++;
+            }
+        }
+        result += '<span class="tw-cursor"></span>';
+        return { html: result, count: charIdx };
+    }
+
+    function showPoem(idx) {
+        // Clear previous typewriter timers
+        twTimers.forEach(t => clearTimeout(t));
+        twTimers = [];
+
+        // Hide all others first, restore their HTML
+        POEMS.forEach((p, i) => {
+            if (i !== idx) {
+                p.classList.remove('show');
+                p.innerHTML = POEM_RAW[i];
+            }
+        });
+
+        // Set up typewriter for the target poem
+        const p = POEMS[idx];
+        const tw = wrapForTypewriter(POEM_RAW[idx]);
+        p.innerHTML = tw.html;
+        p.classList.add('show');
+
+        // Typewriter: reveal chars one by one
+        const chars = p.querySelectorAll('.tw-char');
+        const cursor = p.querySelector('.tw-cursor');
+        const baseDelay = 55; // ms per char
+        chars.forEach((ch, ci) => {
+            const timer = setTimeout(() => {
+                ch.classList.add('visible');
+            }, ci * baseDelay + 400); // 400ms initial delay for fade-in
+            twTimers.push(timer);
+        });
+        // Hide cursor after typing done
+        const hideCursorTimer = setTimeout(() => {
+            if (cursor) cursor.style.opacity = '0';
+        }, chars.length * baseDelay + 800);
+        twTimers.push(hideCursorTimer);
+    }
+    function hideAllPoems() {
+        twTimers.forEach(t => clearTimeout(t));
+        twTimers = [];
+        POEMS.forEach((p, i) => {
+            p.classList.remove('show');
+            p.innerHTML = POEM_RAW[i];
+        });
+    }
+
+    // ═══════════════════════════════════════════
+    //  🌸 FALLING PETALS (2D Canvas overlay)
+    // ═══════════════════════════════════════════
+    const petalCanvas = document.getElementById('petal-canvas');
+    const petalCtx = petalCanvas.getContext('2d');
+    const PETAL_COUNT = 35;
+    const petals = [];
+
+    function resizePetalCanvas() {
+        petalCanvas.width = innerWidth;
+        petalCanvas.height = innerHeight;
+    }
+    resizePetalCanvas();
+    window.addEventListener('resize', resizePetalCanvas);
+
+    // Generate petal shapes
+    function drawPetal(ctx, x, y, size, rotation, alpha, hue) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(rotation);
+        ctx.globalAlpha = alpha;
+
+        // Petal shape: two bezier curves
+        const w = size * 0.5;
+        const h = size;
+        ctx.beginPath();
+        ctx.moveTo(0, -h * 0.5);
+        ctx.bezierCurveTo(w * 1.2, -h * 0.3, w * 1.0, h * 0.3, 0, h * 0.5);
+        ctx.bezierCurveTo(-w * 1.0, h * 0.3, -w * 1.2, -h * 0.3, 0, -h * 0.5);
+        ctx.closePath();
+
+        // Gradient fill
+        const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, h * 0.6);
+        grad.addColorStop(0, `hsla(${hue}, 80%, 85%, 0.9)`);
+        grad.addColorStop(0.6, `hsla(${hue}, 70%, 75%, 0.7)`);
+        grad.addColorStop(1, `hsla(${hue}, 60%, 65%, 0.3)`);
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        // Subtle vein line
+        ctx.beginPath();
+        ctx.moveTo(0, -h * 0.4);
+        ctx.quadraticCurveTo(w * 0.15, 0, 0, h * 0.4);
+        ctx.strokeStyle = `hsla(${hue}, 50%, 90%, 0.3)`;
+        ctx.lineWidth = 0.5;
+        ctx.stroke();
+
+        ctx.restore();
+    }
+
+    // Init petals
+    for (let i = 0; i < PETAL_COUNT; i++) {
+        petals.push({
+            x: Math.random() * innerWidth,
+            y: Math.random() * innerHeight - innerHeight,
+            size: 8 + Math.random() * 14,
+            rotation: Math.random() * Math.PI * 2,
+            rotSpd: (Math.random() - 0.5) * 0.02,
+            vx: (Math.random() - 0.5) * 0.4,
+            vy: 0.3 + Math.random() * 0.6,
+            sway: Math.random() * Math.PI * 2,
+            swaySpd: 0.005 + Math.random() * 0.01,
+            swayAmt: 0.3 + Math.random() * 0.5,
+            alpha: 0.3 + Math.random() * 0.4,
+            hue: 330 + Math.random() * 30, // pink-rose range
+        });
+    }
+
+    function updatePetals() {
+        petalCtx.clearRect(0, 0, petalCanvas.width, petalCanvas.height);
+        for (const p of petals) {
+            p.sway += p.swaySpd;
+            p.x += p.vx + Math.sin(p.sway) * p.swayAmt;
+            p.y += p.vy;
+            p.rotation += p.rotSpd;
+
+            // Wrap around
+            if (p.y > petalCanvas.height + 20) {
+                p.y = -20;
+                p.x = Math.random() * petalCanvas.width;
+            }
+            if (p.x > petalCanvas.width + 20) p.x = -20;
+            if (p.x < -20) p.x = petalCanvas.width + 20;
+
+            drawPetal(petalCtx, p.x, p.y, p.size, p.rotation, p.alpha, p.hue);
+        }
+    }
+
+    // Photo overlay (fade between poems)
+    const PHOTOS = [
+        document.getElementById('photo-0'),
+        document.getElementById('photo-1'),
+        document.getElementById('photo-2'),
+    ];
+    const PHOTO_DUR = 5;
+
+    function showPhoto(idx) {
+        PHOTOS.forEach((p,i) => {
+            if(i===idx) p.classList.add('show');
+            else p.classList.remove('show');
+        });
+    }
+    function hideAllPhotos() {
+        PHOTOS.forEach(p => p.classList.remove('show'));
+    }
+
+    // Combined poem+photo sequence + day counter at the end
+    const dayCounter = document.getElementById('day-counter');
+    const dayNum = document.getElementById('day-num');
+    const DAY_COUNTER_DUR = 8;
+    // *** SET YOUR ANNIVERSARY DATE HERE ***
+    const ANNIVERSARY = new Date('2025-12-08');
+
+    function showDayCounter() {
+        const now = new Date();
+        const totalDays = Math.floor((now - ANNIVERSARY) / (1000*60*60*24));
+        dayNum.textContent = '0';
+        dayCounter.classList.add('show');
+        // Counting animation
+        let current = 0;
+        const countUp = setInterval(() => {
+            current += 1;
+            if (current >= totalDays) {
+                current = totalDays;
+                clearInterval(countUp);
+            }
+            dayNum.textContent = current;
+        }, 55);
+    }
+    function hideDayCounter() {
+        dayCounter.classList.remove('show');
+    }
+
+    const poemSequence = [
+        { type:'poem',  idx:0, dur:POEM_DUR },
+        { type:'photo', idx:0, dur:PHOTO_DUR },
+        { type:'poem',  idx:1, dur:POEM_DUR },
+        { type:'photo', idx:1, dur:PHOTO_DUR },
+        { type:'poem',  idx:2, dur:POEM_DUR + 4 },
+        { type:'photo', idx:2, dur:PHOTO_DUR },
+        { type:'counter', dur:DAY_COUNTER_DUR },
+    ];
+    let poemStep = -1;
+
+    // ═══════════════════════════════════════════
+    //  ANIMATION LOOP
+    // ═══════════════════════════════════════════
+    const clock = new THREE.Clock();
+    let elapsed = 0;
+
+    function animate() {
+        requestAnimationFrame(animate);
+        const dt = Math.min(clock.getDelta(), 0.05);
+        elapsed += dt * 1000;
+        const t = elapsed / 1000;
+
+        // ── Camera: stay centered, only very subtle breathing ──
+        camera.position.x = Math.sin(t * 0.05) * 0.3;
+        camera.position.y = Math.cos(t * 0.04) * 0.2;
+        camera.position.z = 11 + Math.sin(t * 0.03) * 0.3;
+        camera.lookAt(0, 0, 0);
+
+        // ── Detect scene transitions ──
+        if (!morphing && t >= nextMorphT) {
+            if (poemPhase) {
+                // Advance poem+photo sequence
+                poemStep++;
+                if (poemStep < poemSequence.length) {
+                    const step = poemSequence[poemStep];
+                    // Hide previous content first
+                    if (step.type === 'poem') {
+                        hideAllPhotos(); hideDayCounter();
+                        showPoem(step.idx); // showPoem handles its own cleanup
+                    } else if (step.type === 'photo') {
+                        hideAllPoems(); hideDayCounter();
+                        showPhoto(step.idx);
+                    } else if (step.type === 'counter') {
+                        hideAllPoems(); hideAllPhotos();
+                        showDayCounter();
+                    }
+                    nextMorphT = t + step.dur;
+                } else {
+                    // Sequence done → restart text cycle
+                    hideAllPoems(); hideAllPhotos(); hideDayCounter();
+                    poemPhase = false;
+                    poemStep = -1;
+                    startMorph(0, t);
+                }
+            } else {
+                const nextIdx = (currentTextIdx < 0) ? 0 : getNextTextIdx();
+                if (currentTextIdx >= 0 && nextIdx === 0) {
+                    startMorph(-1, t);
+                    currentTextIdx = -2;
+                } else if (currentTextIdx === -2) {
+                    // Heart settled → begin poem+photo sequence
+                    poemPhase = true;
+                    poemStep = 0;
+                    showPoem(poemSequence[0].idx);
+                    nextMorphT = t + poemSequence[0].dur;
+                } else {
+                    startMorph(nextIdx, t);
+                }
+            }
+        }
+
+        // ── Particle update ──
+        const pArr = geo.attributes.position.array;
+        const aArr = geo.attributes.aAlpha.array;
+        const sArr = geo.attributes.aSize.array;
+        const cArr = geo.attributes.aColor.array;
+
+        // Determine heartbeat (only for heart shape)
+        const isHeartShape = (currentTextIdx < 0) && !morphing;
+        const hbT = (t * 1.2) % 1.0;
+        const beat1 = Math.exp(-Math.pow(hbT * 10, 2)) * 0.07;
+        const beat2 = Math.exp(-Math.pow((hbT - 0.2) * 10, 2)) * 0.04;
+        const squeeze = Math.exp(-Math.pow((hbT - 0.08) * 12, 2)) * 0.02
+                      + Math.exp(-Math.pow((hbT - 0.28) * 12, 2)) * 0.012;
+        const heartbeat = beat1 + beat2 - squeeze;
+        const beatFlash = beat1 * 1.5 + beat2 * 0.8;
+
+        for (let i = 0; i < P_COUNT; i++) {
+            const i3 = i * 3;
+            const del = delay[i];
+
+            if (t < T_SWIRL_END + del) {
+                // ── SWIRL: chaotic orbits ──
+                const st = t + swirlOff[i];
+                const shrink = 1 - Math.max(0, Math.min(1, t / (T_SWIRL_END + del))) * 0.35;
+                const rad = swirlR[i] * shrink;
+                const ang = st * swirlSpd[i];
+                pArr[i3]   = Math.cos(ang) * rad;
+                pArr[i3+1] = swirlY[i]*Math.cos(st*0.5) + Math.sin(st*0.7)*1.2;
+                pArr[i3+2] = Math.sin(ang) * rad;
+                aArr[i] = Math.min(1, t*0.7) * (0.3 + Math.sin(st*3+phase[i])*0.2);
+                sArr[i] = baseSize[i] * (0.5 + Math.sin(st*2)*0.15);
+
+            } else if (t < T_HEART_DONE) {
+                // ── FORMATION: spiral into first heart ──
+                const pt = t - T_SWIRL_END - del;
+                const formDur = T_HEART_DONE - T_SWIRL_END - del;
+                const progress = easeInOutQuint(Math.min(1, Math.max(0, pt / Math.max(0.1, formDur))));
+                const tgt = targets.heart[i];
+
+                const spAng = (1-progress)*Math.PI*5 + swirlOff[i];
+                const spRad = (1-progress)*swirlR[i]*0.4;
+                pArr[i3]   = tgt[0]*progress + Math.cos(spAng)*spRad;
+                pArr[i3+1] = tgt[1]*progress + Math.sin(spAng*0.7)*spRad*0.5;
+                pArr[i3+2] = tgt[2]*progress + Math.sin(spAng)*spRad;
+
+                aArr[i] = 0.4 + progress*0.6;
+                sArr[i] = baseSize[i]*(0.6+progress*0.5);
+
+                if (Math.random() < 0.04) {
+                    emitTrail(pArr[i3]+(Math.random()-0.5)*0.1, pArr[i3+1]+(Math.random()-0.5)*0.1, pArr[i3+2]+(Math.random()-0.5)*0.1,
+                        (Math.random()-0.5)*0.5,(Math.random()-0.5)*0.5,(Math.random()-0.5)*0.5, 1+Math.random()*0.5);
+                }
+
+            } else if (morphing) {
+                // ── MORPHING between shapes ──
+                const mp = Math.min(1, (t - morphStartT) / MORPH_DUR);
+                const ep = easeInOutQuint(mp);
+
+                // Lerp color
+                if (!colorsSet || mp < 1) {
+                    const colFrom = colorForShape(morphFromShape, i);
+                    const colTo   = colorForShape(morphToShape, i);
+                    colFrom.lerp(colTo, ep);
+                    cArr[i3]   = colFrom.r;
+                    cArr[i3+1] = colFrom.g;
+                    cArr[i3+2] = colFrom.b;
+                }
+
+                const from = morphFrom[i];
+                const to   = morphTo[i];
+
+                // Add swirl during transition
+                const swirlAmt = Math.sin(mp * Math.PI);
+                const sa = t * swirlSpd[i] * 0.5 + swirlOff[i];
+                const sr = swirlAmt * 1.5;
+
+                pArr[i3]   = from[0]*(1-ep) + to[0]*ep + Math.cos(sa)*sr*(1-ep*0.8);
+                pArr[i3+1] = from[1]*(1-ep) + to[1]*ep + Math.sin(sa*0.7)*sr*0.6*(1-ep*0.8);
+                pArr[i3+2] = from[2]*(1-ep) + to[2]*ep + Math.sin(sa)*sr*0.3*(1-ep*0.8);
+
+                aArr[i] = 0.5 + ep * 0.4 + Math.sin(t*2+phase[i])*0.1;
+                sArr[i] = baseSize[i] * (0.7 + ep*0.4);
+
+                // Trail during morph
+                if (Math.random() < 0.02 * swirlAmt) {
+                    emitTrail(pArr[i3],pArr[i3+1],pArr[i3+2],
+                        (Math.random()-0.5)*0.8,(Math.random()-0.5)*0.8,(Math.random()-0.5)*0.8, 0.8+Math.random()*0.4);
+                }
+
+                if (mp >= 1) {
+                    morphing = false;
+                    colorsSet = true;
+                    // Update current state
+                    if (morphToShape === 'heart') {
+                        // Keep -2 flag if we're transitioning to poem phase
+                        if (currentTextIdx !== -2) currentTextIdx = -1;
+                        currentShape = 'heart';
+                    } else {
+                        // Find which text idx we morphed to
+                        for (let ti = 0; ti < textTargets.length; ti++) {
+                            if (morphTo === textTargets[ti]) { currentTextIdx = ti; break; }
+                        }
+                        currentShape = 'text';
+                    }
+                    // Schedule next morph (use per-message hold or default)
+                    const holdDur = (currentTextIdx >= 0 && TEXT_MSGS[currentTextIdx] && TEXT_MSGS[currentTextIdx].hold)
+                        ? TEXT_MSGS[currentTextIdx].hold : TEXT_HOLD_DUR;
+                    nextMorphT = t + holdDur;
+                }
+
+            } else {
+                // ── SETTLED: hold current shape ──
+                const tgt = getCurrentTargetArray()[i];
+
+                let sc = 1.0;
+                // Heartbeat for heart
+                if (isHeartShape) sc += heartbeat;
+
+                // Gentle float
+                const dx = Math.sin(t*0.5+phase[i])*0.02;
+                const dy = Math.cos(t*0.4+phase[i])*0.015;
+
+                pArr[i3]   = tgt[0]*sc + dx;
+                pArr[i3+1] = tgt[1]*sc + dy;
+                pArr[i3+2] = tgt[2]*sc;
+
+                // Brightness
+                let a = 0.8 + Math.sin(t*2.5+phase[i])*0.15;
+                let s = baseSize[i] * (1 + Math.sin(t*1.8+phase[i])*0.1);
+
+                if (isHeartShape) {
+                    a = Math.min(1, a + beatFlash);
+                    s += baseSize[i] * heartbeat * 4;
+
+                    // ─── Dramatic burst on beat peaks ───
+                    const isBeat1 = hbT < 0.03;
+                    const isBeat2 = hbT > 0.18 && hbT < 0.22;
+                    const isBeatPeak = isBeat1 || isBeat2;
+                    const burstStrength = isBeat1 ? 1.0 : 0.7;
+
+                    if (isBeatPeak && Math.random() < 0.08 * burstStrength) {
+                        const dir = Math.sqrt(tgt[0]*tgt[0]+tgt[1]*tgt[1]+tgt[2]*tgt[2]);
+                        const nx = dir > 0 ? tgt[0]/dir : 0;
+                        const ny = dir > 0 ? tgt[1]/dir : 0;
+                        const nz = dir > 0 ? tgt[2]/dir : 0;
+                        const spd = 3.0 * burstStrength + Math.random() * 2.0;
+                        emitTrail(pArr[i3],pArr[i3+1],pArr[i3+2],
+                            nx*spd+(Math.random()-0.5)*1.5,
+                            ny*spd+(Math.random()-0.5)*1.5,
+                            nz*spd+(Math.random()-0.5)*1.0,
+                            0.8+Math.random()*0.9);
+                    }
+
+                    if (isBeatPeak && Math.random() < 0.04) {
+                        const ang = Math.random()*Math.PI*2;
+                        const lift = (Math.random()-0.5)*0.6;
+                        emitTrail(pArr[i3]+Math.cos(ang)*0.15,
+                            pArr[i3+1]+lift,
+                            pArr[i3+2]+Math.sin(ang)*0.15,
+                            Math.cos(ang)*0.4, lift*0.8+0.3, Math.sin(ang)*0.4,
+                            0.4+Math.random()*0.3);
+                    }
+                }
+
+                // Text shapes: gentle sparkle shimmer + glow pulse
+                if (currentShape === 'text') {
+                    const glowPulse = 0.05 * Math.sin(t * 1.2);
+                    a = 0.82 + glowPulse + Math.sin(t*2+phase[i]*3)*0.06;
+                    s = baseSize[i] * (1.2 + glowPulse*0.3 + Math.sin(t*2.5+phase[i])*0.1);
+                    // Occasional sparkle trail
+                    if (Math.random() < 0.002) {
+                        emitTrail(pArr[i3],pArr[i3+1],pArr[i3+2],
+                            (Math.random()-0.5)*0.4, 0.3+Math.random()*0.3, (Math.random()-0.5)*0.3,
+                            0.5+Math.random()*0.3);
+                    }
+                }
+
+                aArr[i] = a;
+                sArr[i] = s;
+            }
+        }
+
+        geo.attributes.position.needsUpdate = true;
+        geo.attributes.aAlpha.needsUpdate   = true;
+        geo.attributes.aSize.needsUpdate    = true;
+        if (morphing || !colorsSet) geo.attributes.aColor.needsUpdate = true;
+
+        // Slight rotation for depth
+        particles.rotation.y = Math.sin(t * 0.08) * 0.15;
+        particles.rotation.x = Math.sin(t * 0.06) * 0.05;
+
+        // ── Trail update ──
+        for (let i=0;i<TR;i++){
+            if(trL[i]>0){
+                trL[i]-=dt;
+                trA[i]=Math.max(0,trL[i]/1.5);
+                trPos[i*3]+=trV[i*3]*dt;
+                trPos[i*3+1]+=trV[i*3+1]*dt;
+                trPos[i*3+2]+=trV[i*3+2]*dt;
+                trV[i*3]*=0.95; trV[i*3+1]*=0.95; trV[i*3+2]*=0.95;
+            } else trA[i]=0;
+        }
+        trGeo.attributes.position.needsUpdate=true;
+        trGeo.attributes.aAlpha.needsUpdate=true;
+
+        // ── Heart fireworks ──
+        updateFireworks(t, dt);
+
+        // ── Heart arrow rain (during Happy New Year) ──
+        const isHNY = (currentTextIdx === 0 && !morphing);
+        updateArrows(t, dt, isHNY);
+
+        // ── Background layer 1: sparkle dust — rise + swirl + drift ──
+        const ba=bgGeo.attributes.position.array;
+        for(let i=0;i<BG;i++){
+            const i3=i*3;
+            ba[i3+1]+=bgS[i]*dt*0.55;                         // rise
+            ba[i3]+=bgDrift[i]*dt*0.15;                        // lateral drift
+            ba[i3]+=Math.sin(t*0.6+i*0.005)*dt*0.08;          // swirl X
+            ba[i3+2]+=Math.cos(t*0.4+i*0.003)*dt*0.04;        // depth oscillation
+            if(ba[i3+1]>25){ba[i3+1]=-25;ba[i3]=(Math.random()-0.5)*50;ba[i3+2]=(Math.random()-0.5)*35-6;}
+        }
+        bgGeo.attributes.position.needsUpdate=true;
+
+        // ── Background layer 2: floating stars — slow drift + weave ──
+        const ba2=bg2Geo.attributes.position.array;
+        for(let i=0;i<BG2;i++){
+            const i3=i*3;
+            ba2[i3+1]+=bg2S[i]*dt*0.35;
+            ba2[i3]+=Math.sin(t*0.3+i*0.02)*dt*0.06;
+            ba2[i3+2]+=Math.cos(t*0.25+i*0.015)*dt*0.03;
+            if(ba2[i3+1]>20){ba2[i3+1]=-20;ba2[i3]=(Math.random()-0.5)*40;}
+        }
+        bg2Geo.attributes.position.needsUpdate=true;
+
+        // ── Background layer 3: bokeh — gentle float + sway ──
+        const ba3=bkGeo.attributes.position.array;
+        for(let i=0;i<BK;i++){
+            const i3=i*3;
+            ba3[i3+1]+=bkS[i]*dt*0.5;
+            ba3[i3]+=Math.sin(t*0.15+i*0.1)*dt*0.04;
+            ba3[i3+2]+=Math.sin(t*0.12+i*0.07)*dt*0.02;
+            if(ba3[i3+1]>20) ba3[i3+1]=-20;
+        }
+        bkGeo.attributes.position.needsUpdate=true;
+
+        // ── Lights (animated) ──
+        pL1.position.x=5+Math.sin(t*0.35)*2.5;
+        pL1.position.y=4+Math.cos(t*0.2)*2;
+        pL1.position.z=5+Math.sin(t*0.28)*1.5;
+        pL2.position.x=-5+Math.cos(t*0.3)*2.5;
+        pL2.position.y=-3+Math.sin(t*0.22)*1.5;
+        pL2.position.z=6+Math.cos(t*0.4)*2;
+        pL3.intensity=1.2+Math.sin(t*0.5)*0.4;
+
+        // ── Bloom sync with heartbeat ──
+        if (isHeartShape) {
+            bloom.strength = 1.3 + (beat1+beat2)*0.3;
+        } else {
+            bloom.strength = 1.0 + Math.sin(t*0.3)*0.1;
+        }
+
+        // ── Background layer breathing + rotation ──
+        bgPts.material.opacity = 0.55 + Math.sin(t*0.6)*0.15;
+        bgPts.rotation.y = t*0.008;
+        bgPts.rotation.x = Math.sin(t*0.05)*0.03;
+
+        bg2Pts.material.opacity = 0.4 + Math.sin(t*0.5+1)*0.12;
+        bg2Pts.rotation.y = -t*0.006;
+        bg2Pts.rotation.z = Math.sin(t*0.04)*0.02;
+
+        bkPts.material.opacity = 0.14 + Math.sin(t*0.35)*0.06;
+        bkPts.rotation.y = t*0.003;
+
+        // ── Large bokeh float ──
+        const ba4=bk2Geo.attributes.position.array;
+        for(let i=0;i<BK2;i++){
+            const i3=i*3;
+            ba4[i3]+=Math.sin(t*0.1+i*0.3)*dt*0.06;
+            ba4[i3+1]+=bk2Spd[i]*dt*8;
+            ba4[i3+2]+=Math.cos(t*0.08+i*0.2)*dt*0.03;
+            if(ba4[i3+1]>18){ba4[i3+1]=-18;ba4[i3]=(Math.random()-0.5)*40;}
+        }
+        bk2Geo.attributes.position.needsUpdate=true;
+        bk2Pts.material.opacity=0.04+Math.sin(t*0.25)*0.02;
+        bk2Pts.rotation.y=t*0.002;
+
+        // ── Shooting stars ──
+        updateShootingStars(t, dt);
+
+        // ── Falling petals ──
+        updatePetals();
+
+        // ── Animated background gradient ──
+        updateBgGradient(t);
+
+        // ── Render ──
+        composer.render();
+    }
+
+    // ═══════════════════════════════════════════
+    //  RESIZE
+    // ═══════════════════════════════════════════
+    window.addEventListener('resize', () => {
+        const w=innerWidth,h=innerHeight;
+        camera.aspect=w/h;
+        camera.updateProjectionMatrix();
+        renderer.setSize(w,h);
+        composer.setSize(w,h);
+    });
+
+    // ═══════════════════════════════════════════
+    //  START (wait for tap)
+    // ═══════════════════════════════════════════
+    const tapScreen = document.getElementById('tap-screen');
+    const bgMusic = document.getElementById('bg-music');
+    const musicToggle = document.getElementById('music-toggle');
+    let musicPlaying = false;
+
+    function startExperience() {
+        tapScreen.classList.add('hidden');
+
+        // Try to play music with fade-in
+        bgMusic.volume = 0;
+        bgMusic.play().then(() => {
+            musicPlaying = true;
+            // Smooth fade-in over 3 seconds
+            let fadeVol = 0;
+            const fadeIn = setInterval(() => {
+                fadeVol += 0.01;
+                if (fadeVol >= 0.35) { fadeVol = 0.35; clearInterval(fadeIn); }
+                bgMusic.volume = fadeVol;
+            }, 85); // ~3s total
+        }).catch(() => {
+            musicToggle.style.display = 'none';
+        });
+
+        // Countdown: 3 → 2 → 1 → 💕 → start
+        const cdOverlay = document.getElementById('countdown-overlay');
+        cdOverlay.classList.add('active');
+        document.getElementById('loading-screen').classList.add('hidden');
+
+        const sequence = ['3', '2', '1', '💕'];
+        let step = 0;
+
+        function nextCount() {
+            if (step < sequence.length) {
+                cdOverlay.innerHTML = `<div class="count-num">${sequence[step]}</div>`;
+                step++;
+                setTimeout(nextCount, 950);
+            } else {
+                cdOverlay.classList.remove('active');
+                cdOverlay.innerHTML = '';
+                animate();
+            }
+        }
+        nextCount();
+    }
+
+    tapScreen.addEventListener('click', startExperience);
+    tapScreen.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        startExperience();
+    });
+
+    // Music toggle button
+    musicToggle.addEventListener('click', () => {
+        if (musicPlaying) {
+            bgMusic.pause();
+            musicPlaying = false;
+            musicToggle.textContent = '🔇';
+            musicToggle.classList.add('muted');
+        } else {
+            bgMusic.play().then(() => {
+                musicPlaying = true;
+                musicToggle.textContent = '🎵';
+                musicToggle.classList.remove('muted');
+            }).catch(()=>{});
+        }
+    });
+
+    </script>
+</body>
+</html>

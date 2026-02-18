@@ -1,8 +1,10 @@
 # Happy-Love
 
+```
+Happy-Love/
+├── img/
+│   └── (your images here)
+├── music.mp3
+└── index.html
 
-Directory structure:
-
---------- img/
---------- index.html
---------- music.mp3
+```
